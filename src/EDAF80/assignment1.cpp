@@ -165,7 +165,7 @@ int main()
 
 	CelestialBody earth(sphere, &celestial_body_shader, earth_texture);
 	earth.set_spin(earth_spin);
-	earth.set_orbit({-2.5f, glm::radians(45.0f), glm::two_pi<float>() / 10.0f});
+	earth.set_orbit({-2.5f, glm::radians(90.0f), glm::two_pi<float>() / 10.0f});
 	earth.add_child(&moon);
 
 
@@ -250,8 +250,9 @@ int main()
 		// with a traversal of the scene graph and rendering of all its
 		// nodes.
 		earth.render(animation_delta_time_us, camera.GetWorldToClipMatrix(), glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 0.0f)), show_basis);
+		earth.set_scale(glm::vec3(1.0, 0.2, 0.2));
 		//moon.render(animation_delta_time_us, camera.GetWorldToClipMatrix(), glm::mat4(1.0f), show_basis);
-
+		 
 
 		//
 		// Add controls to the scene.
