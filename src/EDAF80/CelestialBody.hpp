@@ -66,6 +66,8 @@ public:
 	//! \brief Configure the spin parameters for this celestial body.
 	void set_spin(SpinConfiguration const& configuration);
 
+	void setLock(bool set);
+
 	//! \brief Default constructor for a celestial body.
 	//!
 	//! @param [in] shape Shape used for the rings.
@@ -94,12 +96,13 @@ private:
 			float speed{0.0f};          //!< Rotation speed in radians per second.
 			float rotation_angle{0.0f}; //!< How much has it rotated around its rotational axis; in radians.
 		} spin;
+		bool tidalLock{ false };
 	} _body;
 
 	struct {
 		Node node;
 		glm::vec2 scale{1.0f};
-		bool is_set{false};
+		bool is_set{ false };
 	} _ring;
 
 	std::vector<CelestialBody*> _children;

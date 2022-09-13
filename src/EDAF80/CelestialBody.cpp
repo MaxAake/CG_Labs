@@ -29,15 +29,31 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
 	glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(_body.scale));
 	_body.spin.rotation_angle += _body.spin.speed * elapsed_time_s;
 	_body.orbit.rotation_angle += _body.orbit.speed * elapsed_time_s;
-	glm::mat4 rotY = glm::rotate(glm::mat4(1.0f), _body.spin.rotation_angle, glm::vec3(0, 1, 0));
-	glm::mat4 rotZ = glm::rotate(glm::mat4(1.0f), _body.spin.axial_tilt, glm::vec3(0, 0, 1));
-	glm::mat4 translate = glm::translate(glm::mat4(1.0f), glm::vec3(
+	glm::mat4 spin = glm::rotate(glm::mat4(1.0f), _body.spin.rotation_angle, glm::vec3(0, 1, 0));
+	glm::mat4 spinTilt = glm::rotate(glm::mat4(1.0f), _body.spin.axial_tilt, glm::vec3(0, 0, 1));
+	
+	glm::mat4 orbitNoLock = glm::translate(glm::mat4(1.0f), glm::vec3(
 		cos(_body.orbit.rotation_angle) * _body.orbit.radius,
 		0,
-		sin(_body.orbit.rotation_angle) * _body.orbit.radius));
+		-sin(_body.orbit.rotation_angle) * _body.orbit.radius));
+		//OLD ORBIT WORK, Solves the tilt angle, but results in a wacky moon.
+	glm::mat4 orbitTidalLock = glm::rotate(glm::mat4(1.0f), _body.orbit.rotation_angle, glm::vec3(0, 1, 0)) * glm::translate(glm::mat4(1.0f), glm::vec3(_body.orbit.radius, 0, 0));
+
+	glm::mat4 orbit;
+	if (_body.tidalLock) {
+		orbit = orbitTidalLock;
+	}
+	else {
+		orbit = orbitNoLock;
+	}
+
 	glm::mat4 orbitTilt = glm::rotate(glm::mat4(1.0f), _body.orbit.inclination, glm::vec3(0, 0, 1));
 
-	glm::mat4 world = orbitTilt * translate * rotZ * rotY;
+	glm::mat4 world = parent_transform * orbitTilt * orbit * spinTilt * spin * scale;
+
+	if (_ring.is_set) {
+		_ring.node.render(view_projection, parent_transform * orbitTilt * orbit * spinTilt * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1, 0, 0)) * glm::scale(glm::mat4(1.0f), glm::vec3(_ring.scale, 1)));
+	}
 
 	if (show_basis)
 	{
@@ -52,7 +68,7 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
 	// world matrix.
 	_body.node.render(view_projection, world);
 
-	return parent_transform;
+	return parent_transform * orbitTilt * orbit * spinTilt;
 }
 
 void CelestialBody::add_child(CelestialBody* child)
@@ -76,6 +92,11 @@ void CelestialBody::set_orbit(OrbitConfiguration const& configuration)
 void CelestialBody::set_scale(glm::vec3 const& scale)
 {
 	_body.scale = scale;
+}
+
+void CelestialBody::setLock(bool set)
+{
+	_body.tidalLock = set;
 }
 
 void CelestialBody::set_spin(SpinConfiguration const& configuration)
