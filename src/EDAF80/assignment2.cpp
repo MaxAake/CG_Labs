@@ -43,12 +43,12 @@ void
 edaf80::Assignment2::run()
 {
 	// Load the sphere geometry
-	auto const shape = parametric_shapes::createCircleRing(2.0f, 0.75f, 40u, 4u);
+	auto const shape = parametric_shapes::createSphere(1.0f, 4u, 4u);
 	if (shape.vao == 0u)
 		return;
 
 	// Set up the camera
-	mCamera.mWorld.SetTranslate(glm::vec3(0.0f, 1.0f, 9.0f));
+	mCamera.mWorld.SetTranslate(glm::vec3(0.0f, 0.0f, 0.5f));
 	mCamera.mMouseSensitivity = glm::vec2(0.003f);
 	mCamera.mMovementSpeed = glm::vec3(3.0f); // 3 m/s => 10.8 km/h
 
@@ -137,8 +137,6 @@ edaf80::Assignment2::run()
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
-
-
 	auto const control_point_sphere = parametric_shapes::createSphere(0.1f, 10u, 10u);
 	std::array<glm::vec3, 9> control_point_locations = {
 		glm::vec3( 0.0f,  0.0f,  0.0f),
@@ -158,7 +156,6 @@ edaf80::Assignment2::run()
 		control_point.set_program(&diffuse_shader, set_uniforms);
 		control_point.get_transform().SetTranslate(control_point_locations[i]);
 	}
-
 
 	auto lastTime = std::chrono::high_resolution_clock::now();
 
@@ -227,14 +224,12 @@ edaf80::Assignment2::run()
 				//!       variable as your tension argument.
 			}
 		}
-
 		circle_rings.render(mCamera.GetWorldToClipMatrix());
 		if (show_control_points) {
 			for (auto const& control_point : control_points) {
 				control_point.render(mCamera.GetWorldToClipMatrix());
 			}
 		}
-
 		bool const opened = ImGui::Begin("Scene Controls", nullptr, ImGuiWindowFlags_None);
 		if (opened) {
 			auto const cull_mode_changed = bonobo::uiSelectCullMode("Cull mode", cull_mode);
