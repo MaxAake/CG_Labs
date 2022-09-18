@@ -43,7 +43,7 @@ void
 edaf80::Assignment2::run()
 {
 	// Load the sphere geometry
-	auto const shape = parametric_shapes::createSphere(1.0f, 4u, 4u);
+	auto const shape = parametric_shapes::createSphere(1.0f, 6u, 6u);
 	if (shape.vao == 0u)
 		return;
 
@@ -133,7 +133,7 @@ edaf80::Assignment2::run()
 
 	//! \todo Create a tesselated sphere and a tesselated torus
 
-
+	/*
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
@@ -156,6 +156,8 @@ edaf80::Assignment2::run()
 		control_point.set_program(&diffuse_shader, set_uniforms);
 		control_point.get_transform().SetTranslate(control_point_locations[i]);
 	}
+
+	*/
 
 	auto lastTime = std::chrono::high_resolution_clock::now();
 
@@ -224,12 +226,16 @@ edaf80::Assignment2::run()
 				//!       variable as your tension argument.
 			}
 		}
+		
 		circle_rings.render(mCamera.GetWorldToClipMatrix());
 		if (show_control_points) {
+			/*
 			for (auto const& control_point : control_points) {
 				control_point.render(mCamera.GetWorldToClipMatrix());
 			}
+			*/
 		}
+		
 		bool const opened = ImGui::Begin("Scene Controls", nullptr, ImGuiWindowFlags_None);
 		if (opened) {
 			auto const cull_mode_changed = bonobo::uiSelectCullMode("Cull mode", cull_mode);

@@ -154,7 +154,6 @@ parametric_shapes::createSphere(float const radius,
 			float const cos_phi = std::cos(phi);
 			float const sin_phi = std::sin(phi);
 			// vertex
-			std::cout<<(radius * sin_theta * sin_phi);
 			vertices[index] = glm::vec3(radius * sin_theta * sin_phi,
 				-radius * cos_phi,
 				radius * cos_theta * sin_phi);
@@ -296,7 +295,7 @@ parametric_shapes::createCircleRing(float const radius,
 	float const d_theta = glm::two_pi<float>() / (static_cast<float>(circle_slice_edges_count));
 	float const d_spread = spread_length / (static_cast<float>(spread_slice_edges_count));
 
-	// generate vertices iteratively
+	// generate vertices iteratively 
 	size_t index = 0u;
 	float theta = 0.0f;
 	for (unsigned int i = 0u; i < circle_slice_vertices_count; ++i) {
