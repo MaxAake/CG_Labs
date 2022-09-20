@@ -43,12 +43,12 @@ void
 edaf80::Assignment2::run()
 {
 	// Load the sphere geometry
-	auto const shape = parametric_shapes::createSphere(1.0f, 6u, 6u);
+	auto const shape = parametric_shapes::createSphere(1.0f, 10u, 10u);
 	if (shape.vao == 0u)
 		return;
 
 	// Set up the camera
-	mCamera.mWorld.SetTranslate(glm::vec3(0.0f, 0.0f, 0.5f));
+	mCamera.mWorld.SetTranslate(glm::vec3(0.0f, 1.0f, 9.0f));
 	mCamera.mMouseSensitivity = glm::vec2(0.003f);
 	mCamera.mMovementSpeed = glm::vec3(3.0f); // 3 m/s => 10.8 km/h
 
@@ -111,7 +111,7 @@ edaf80::Assignment2::run()
 
 	// Set the default tensions value; it can always be changed at runtime
 	// through the "Scene Controls" window.
-	float catmull_rom_tension = 0.0f;
+	float catmull_rom_tension = 0.5f;
 
 	// Set whether the default interpolation algorithm should be the linear one;
 	// it can always be changed at runtime through the "Scene Controls" window.
@@ -133,7 +133,6 @@ edaf80::Assignment2::run()
 
 	//! \todo Create a tesselated sphere and a tesselated torus
 
-	/*
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
@@ -157,7 +156,6 @@ edaf80::Assignment2::run()
 		control_point.get_transform().SetTranslate(control_point_locations[i]);
 	}
 
-	*/
 
 	auto lastTime = std::chrono::high_resolution_clock::now();
 
@@ -172,6 +170,9 @@ edaf80::Assignment2::run()
 	float basis_length_scale = 1.0f;
 
 	changeCullMode(cull_mode);
+
+	float interpol_x = 0.0f;
+	int current_point = 0;
 
 	while (!glfwWindowShouldClose(window)) {
 		auto const nowTime = std::chrono::high_resolution_clock::now();
@@ -211,31 +212,79 @@ edaf80::Assignment2::run()
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		bonobo::changePolygonMode(polygon_mode);
 
+		if (interpol_x > 1) {
+			interpol_x -= static_cast<int>(interpol_x);
+			current_point += 1;
+		}
 
 		if (interpolate) {
 			//! \todo Interpolate the movement of a shape between various
 			//!        control points.
 			if (use_linear) {
-				//! \todo Compute the interpolated position
-				//!       using the linear interpolation.
+				glm::vec2 row = glm::vec2(1, interpol_x);
+
+				glm::mat2 inter_mat = glm::mat2(
+					glm::vec2(1.0f, -1.0f),
+					glm::vec2(0.0f, 1.0f)
+				);
+
+				glm::vec4 point1 = glm::vec4(control_point_locations[(current_point) % control_point_locations.size()], 1);
+				glm::vec4 point2 = glm::vec4(control_point_locations[(current_point + 1) % control_point_locations.size()], 1);
+
+				glm::mat4x2 col = glm::mat4x2(
+					glm::vec2(point1.x, point2.x),
+					glm::vec2(point1.y, point2.y),
+					glm::vec2(point1.z, point2.z),
+					glm::vec2(point1.w, point2.w));
+
+				glm::vec4 p_x = (row * inter_mat * col);
+
+				circle_rings.get_transform().SetTranslate(p_x);
 			}
 			else {
 				//! \todo Compute the interpolated position
 				//!       using the Catmull-Rom interpolation;
 				//!       use the `catmull_rom_tension`
 				//!       variable as your tension argument.
+
+				glm::vec4 row = glm::vec4(1, interpol_x, pow(interpol_x, 2), pow(interpol_x, 3));
+
+				glm::mat4 inter_mat = glm::mat4(
+					glm::vec4(0.0f, -catmull_rom_tension, 2.0f * catmull_rom_tension, -catmull_rom_tension),
+					glm::vec4(1.0f, 0.0f, catmull_rom_tension - 3.0f, 2.0f - catmull_rom_tension),
+					glm::vec4(0, catmull_rom_tension, 3.0f - 2.0f * catmull_rom_tension, catmull_rom_tension - 2.0f),
+					glm::vec4(0.0f, 0.0f, -catmull_rom_tension, catmull_rom_tension)
+				);
+
+				glm::vec4 point1 = glm::vec4(control_point_locations[(current_point - 1) % control_point_locations.size()], 1);
+				glm::vec4 point2 = glm::vec4(control_point_locations[(current_point) % control_point_locations.size()], 1);
+				glm::vec4 point3 = glm::vec4(control_point_locations[(current_point + 1) % control_point_locations.size()], 1);
+				glm::vec4 point4 = glm::vec4(control_point_locations[(current_point + 2) % control_point_locations.size()], 1);
+
+				glm::mat4 col = glm::mat4(
+					glm::vec4(point1.x, point2.x, point3.x, point4.x),
+					glm::vec4(point1.y, point2.y, point3.y, point4.y),
+					glm::vec4(point1.z, point2.z, point3.z, point3.z),
+					glm::vec4(point1.w, point2.w, point4.w, point4.w)
+				);
+
+				glm::vec4 q_x = (row * inter_mat * col);
+
+				circle_rings.get_transform().SetTranslate(q_x);
 			}
+
+			interpol_x += deltaTimeUs.count() / 1e6f;
 		}
+
 		
 		circle_rings.render(mCamera.GetWorldToClipMatrix());
 		if (show_control_points) {
-			/*
 			for (auto const& control_point : control_points) {
 				control_point.render(mCamera.GetWorldToClipMatrix());
 			}
-			*/
 		}
-		
+
+
 		bool const opened = ImGui::Begin("Scene Controls", nullptr, ImGuiWindowFlags_None);
 		if (opened) {
 			auto const cull_mode_changed = bonobo::uiSelectCullMode("Cull mode", cull_mode);

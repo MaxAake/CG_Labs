@@ -146,9 +146,20 @@ parametric_shapes::createSphere(float const radius,
 	size_t index = 0u;
 	float theta = 0.0f;
 	for (unsigned int i = 0u; i < lat_slice_vertices_count; ++i) {
-		float const cos_theta = std::cos(theta);
-		float const sin_theta = std::sin(theta);
-
+		float cos_theta;
+		float sin_theta;
+		if (i == lat_slice_vertices_count - 1) {
+			cos_theta = 1;
+			sin_theta = 0;
+		}
+		else {
+			cos_theta = std::cos(theta);
+			sin_theta = std::sin(theta);
+		}
+		std::cout << cos_theta;
+		std::cout << " ";
+		std::cout << sin_theta;
+		std::cout << "\n";
 		float phi = 0.0f;
 		for (unsigned int j = 0u; j < lon_slice_vertices_count; ++j) {
 			float const cos_phi = std::cos(phi);
@@ -183,7 +194,7 @@ parametric_shapes::createSphere(float const radius,
 	}
 
 	// create index array
-	auto index_sets = std::vector<glm::uvec3>(100u);
+	auto index_sets = std::vector<glm::uvec3>(2u * lat_slice_edges_count * lon_slice_edges_count);
 
 	// generate indices iteratively
 	index = 0u;
@@ -192,13 +203,13 @@ parametric_shapes::createSphere(float const radius,
 		for (unsigned int j = 0u; j < lon_slice_edges_count; ++j)
 		{
 			index_sets[index] = glm::uvec3(lon_slice_vertices_count * (i + 0u) + (j + 0u),
-				lon_slice_vertices_count * (i + 0u) + (j + 1u),
-				lon_slice_vertices_count * (i + 1u) + (j + 1u));
+				lon_slice_vertices_count * (i + 1u) + (j + 1u),
+				lon_slice_vertices_count * (i + 0u) + (j + 1u));
 			++index;
 
 			index_sets[index] = glm::uvec3(lon_slice_vertices_count * (i + 0u) + (j + 0u),
-				lon_slice_vertices_count * (i + 1u) + (j + 1u),
-				lon_slice_vertices_count * (i + 1u) + (j + 0u));
+				lon_slice_vertices_count * (i + 1u) + (j + 0u),
+				lon_slice_vertices_count * (i + 1u) + (j + 1u));
 			++index;
 		}
 	}
