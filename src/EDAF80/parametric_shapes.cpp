@@ -156,10 +156,6 @@ parametric_shapes::createSphere(float const radius,
 			cos_theta = std::cos(theta);
 			sin_theta = std::sin(theta);
 		}
-		std::cout << cos_theta;
-		std::cout << " ";
-		std::cout << sin_theta;
-		std::cout << "\n";
 		float phi = 0.0f;
 		for (unsigned int j = 0u; j < lon_slice_vertices_count; ++j) {
 			float const cos_phi = std::cos(phi);

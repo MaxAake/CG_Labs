@@ -402,16 +402,16 @@ bonobo::loadTexture2D(std::string const& filename, bool generate_mipmap)
 
 GLuint
 bonobo::loadTextureCubeMap(std::string const& posx, std::string const& negx,
-                           std::string const& posy, std::string const& negy,
-                           std::string const& posz, std::string const& negz,
-                           bool generate_mipmap)
+	std::string const& posy, std::string const& negy,
+	std::string const& posz, std::string const& negz,
+	bool generate_mipmap)
 {
 	GLuint texture = 0u;
 	// Create an OpenGL texture object. Similarly to `glGenVertexArrays()`
 	// and `glGenBuffers()` that were used in assignment 2,
 	// `glGenTextures()` can create `n` texture objects at once. Here we
 	// only one texture object that will contain our whole cube map.
-	glGenTextures(1, /*! \todo fill me */nullptr);
+	glGenTextures(1, &texture);
 	assert(texture != 0u);
 
 	// Similarly to vertex arrays and buffers, we first need to bind the
@@ -438,11 +438,7 @@ bonobo::loadTextureCubeMap(std::string const& posx, std::string const& negx,
 	// image files and return a `std::vector<std::uint8_t>` containing all the
 	// texels.
 	std::uint32_t width, height;
-	auto data = getTextureData(negx, width, height, false);
-	if (data.empty()) {
-		glDeleteTextures(1, &texture);
-		return 0u;
-	}
+	
 	// With all the texels available on the CPU, we now want to push them
 	// to the GPU: this is done using `glTexImage2D()` (among others). You
 	// might have thought that the target used here would be the same as
@@ -452,15 +448,31 @@ bonobo::loadTextureCubeMap(std::string const& posx, std::string const& negx,
 	// as the target the face we want to fill in. In this case, we will
 	// start by filling the face sitting on the negative side of the
 	// x-axis by specifying GL_TEXTURE_CUBE_MAP_NEGATIVE_X.
-	glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
-	             /* mipmap level, you'll see that in EDAN35 */0,
-	             /* how are the components internally stored */GL_RGBA,
-	             /* the width of the cube map's face */static_cast<GLsizei>(width),
-	             /* the height of the cube map's face */static_cast<GLsizei>(height),
-	             /* must always be 0 */0,
-	             /* the format of the pixel data: which components are available */GL_RGBA,
-	             /* the type of each component */GL_UNSIGNED_BYTE,
-	             /* the pointer to the actual data on the CPU */reinterpret_cast<GLvoid const*>(data.data()));
+	std::vector<int> sides = { GL_TEXTURE_CUBE_MAP_NEGATIVE_X,GL_TEXTURE_CUBE_MAP_POSITIVE_X,
+						GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
+						GL_TEXTURE_CUBE_MAP_NEGATIVE_Z,GL_TEXTURE_CUBE_MAP_POSITIVE_Z };
+	std::vector<std::string> texture_paths = { negx, posx, negy, posy, negz, posz };
+	std::vector<uint8_t> data;
+
+	for (int i = 0; i < 6; i++) {
+		data = getTextureData(texture_paths[i], width, height, false);
+		if (data.empty()) {
+			glDeleteTextures(1, &texture);
+			return 0u;
+		}
+		glTexImage2D(sides[i],
+			/* mipmap level, you'll see that in EDAN35 */0,
+			/* how are the components internally stored */GL_RGBA,
+			/* the width of the cube map's face */static_cast<GLsizei>(width),
+			/* the height of the cube map's face */static_cast<GLsizei>(height),
+			/* must always be 0 */0,
+			/* the format of the pixel data: which components are available */GL_RGBA,
+			/* the type of each component */GL_UNSIGNED_BYTE,
+			/* the pointer to the actual data on the CPU */reinterpret_cast<GLvoid const*>(data.data()));
+	}
+
+	
+	
 
 	//! \todo repeat now the texture filling for the 5 remaining faces
 

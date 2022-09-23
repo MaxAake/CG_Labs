@@ -59,6 +59,26 @@ edaf80::Assignment3::run()
 		return;
 	}
 
+	GLuint skybox_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Skybox",
+		{ { ShaderType::vertex, "EDAF80/skybox.vert" },
+		  { ShaderType::fragment, "EDAF80/skybox.frag" } },
+		skybox_shader);
+	if (skybox_shader == 0u) {
+		LogError("Failed to load skybox shader");
+		return;
+	}
+
+	GLuint phong_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Phong",
+		{ { ShaderType::vertex, "EDAF80/phong.vert" },
+		  { ShaderType::fragment, "EDAF80/phong.frag" } },
+		phong_shader);
+	if (phong_shader == 0u) {
+		LogError("Failed to load phong shader");
+		return;
+	}
+
 	GLuint diffuse_shader = 0u;
 	program_manager.CreateAndRegisterProgram("Diffuse",
 	                                         { { ShaderType::vertex, "EDAF80/diffuse.vert" },
@@ -107,8 +127,15 @@ edaf80::Assignment3::run()
 	}
 
 	Node skybox;
+	GLuint cubemap = bonobo::loadTextureCubeMap(config::resources_path("cubemaps/NissiBeach2/posx.jpg"),
+		config::resources_path("cubemaps/NissiBeach2/negx.jpg"),
+		config::resources_path("cubemaps/NissiBeach2/posy.jpg"),
+		config::resources_path("cubemaps/NissiBeach2/negy.jpg"),
+		config::resources_path("cubemaps/NissiBeach2/posz.jpg"),
+		config::resources_path("cubemaps/NissiBeach2/negz.jpg"));
 	skybox.set_geometry(skybox_shape);
-	skybox.set_program(&fallback_shader, set_uniforms);
+	skybox.set_program(&skybox_shader, set_uniforms);
+	skybox.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
 
 	auto demo_shape = parametric_shapes::createSphere(1.5f, 40u, 40u);
 	if (demo_shape.vao == 0u) {
