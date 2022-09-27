@@ -150,8 +150,14 @@ edaf80::Assignment3::run()
 	demo_material.shininess = 10.0f;
 
 	Node demo_sphere;
+	GLuint diffuse = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_coll1_2k.jpg"));
+	GLuint specular = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_rough_2k.jpg"));
+	GLuint normals = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_nor_2k.jpg"));
 	demo_sphere.set_geometry(demo_shape);
 	demo_sphere.set_material_constants(demo_material);
+	demo_sphere.add_texture("diffuse_texture", diffuse, GL_TEXTURE_2D);
+	demo_sphere.add_texture("specular_texture", specular, GL_TEXTURE_2D);
+	demo_sphere.add_texture("normal_map", normals, GL_TEXTURE_2D);
 	demo_sphere.set_program(&fallback_shader, phong_set_uniforms);
 
 
