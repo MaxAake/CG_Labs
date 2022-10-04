@@ -58,16 +58,51 @@ edaf80::Assignment4::run()
 		return;
 	}
 
+	GLuint wave_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Wave",
+		{ { ShaderType::vertex, "EDAF80/wave.vert" },
+		  { ShaderType::fragment, "common/fallback.frag" } },
+		wave_shader);
+
+	if (wave_shader == 0u) {
+		LogError("Failed to load wave shader");
+		return;
+	}
+
+	float amps[] = { 1.0, 0.5 };
+	float dirs_x[] = { -1.0, 0.7 };
+	float dirs_z[] = { 0, 0.7 };
+	float freqs[] = { 0.2, 0.4 };
+	float phases[] = { 0.5, 1.3 };
+	float sharpnesses[] = { 2.0, 2.0 };
+	float elapsed_time_s = 0.0f;
+
+
+	auto const wave_set_uniforms = [&amps, &dirs_x, &dirs_z, &freqs, &phases, &sharpnesses, &elapsed_time_s](GLuint program) {
+		glUniform1fv(glGetUniformLocation(program, "amps"), 2, amps);
+		glUniform1fv(glGetUniformLocation(program, "dirs_x"), 2, dirs_x);
+		glUniform1fv(glGetUniformLocation(program, "dirs_z"), 2, dirs_z);
+		glUniform1fv(glGetUniformLocation(program, "freqs"), 2, freqs);
+		glUniform1fv(glGetUniformLocation(program, "phases"), 2, phases);
+		glUniform1fv(glGetUniformLocation(program, "sharpness"), 2, sharpnesses);
+		glUniform1f(glGetUniformLocation(program, "elapsed_time_s"), elapsed_time_s);
+	};
 	//
 	// Todo: Insert the creation of other shader programs.
 	//       (Check how it was done in assignment 3.)
 	//
 
-	float elapsed_time_s = 0.0f;
+	
 
-	//
-	// Todo: Load your geometry
-	//
+	auto water_shape = parametric_shapes::createQuad(100u, 100u, 1000u, 1000u);
+	if (water_shape.vao == 0u) {
+		LogError("Failed to retrieve the mesh for the demo sphere");
+		return;
+	}
+
+	Node water_node;
+	water_node.set_geometry(water_shape);
+	water_node.set_program(&wave_shader, wave_set_uniforms);
 
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -147,9 +182,7 @@ edaf80::Assignment4::run()
 
 
 		if (!shader_reload_failed) {
-			//
-			// Todo: Render all your geometry here.
-			//
+			water_node.render(mCamera.GetWorldToClipMatrix());
 		}
 
 

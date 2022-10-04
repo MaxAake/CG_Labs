@@ -187,7 +187,7 @@ void Report(
 		textout_func(type, os.str().c_str());
 #ifdef _WIN32
 	if (logSettings[t].severity != Severity::OK && IsDebuggerPresent())
-  		__debugbreak();
+  		//__debugbreak();
 #endif
 	if (logSettings[t].severity == Severity::TERMINAL) {
 		Destroy();
