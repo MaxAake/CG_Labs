@@ -30,7 +30,10 @@ parametric_shapes::createQuad(float const width, float const height,
 	for (unsigned int i = 0u; i < horizontal_slice_vertices_count; i++) {
 		for (unsigned int j = 0u; j < vertical_slice_vertices_count; j++) {
 			vertices[k] = glm::vec3(width_per_vert*i, 0.0f, height_per_vert*j);
-			texcoords[k] = glm::vec3(i*1.0f/horizontal_slice_vertices_count, j*1.0f/vertical_slice_vertices_count, 0.0f); //IF  THIS BREAKS; MAKE CAST TO FLOOOT
+			//texcoords[k] = glm::vec3(i*1.0f/horizontal_slice_vertices_count, j*1.0f/vertical_slice_vertices_count, 0.0f); //IF  THIS BREAKS; MAKE CAST TO FLOOOT
+			texcoords[k] = glm::vec3(static_cast<float>(j) / (static_cast<float>(horizontal_slice_vertices_count)),
+				static_cast<float>(i) / (static_cast<float>(vertical_slice_vertices_count)),
+				0.0f);
 			k = k + 1;
 		}
 	}
@@ -46,13 +49,13 @@ parametric_shapes::createQuad(float const width, float const height,
 		for (unsigned int j = 0u; j < vertical_slice_edges_count; j++)
 		{
 			index_sets[index] = glm::uvec3(horizontal_slice_vertices_count * (i + 0u) + (j + 0u),
-				vertical_slice_vertices_count * (i + 1u) + (j + 1u),
-				vertical_slice_vertices_count * (i + 0u) + (j + 1u));
+				vertical_slice_vertices_count * (i + 0u) + (j + 1u),
+				vertical_slice_vertices_count * (i + 1u) + (j + 1u));
 			++index;
 
 			index_sets[index] = glm::uvec3(vertical_slice_vertices_count * (i + 0u) + (j + 0u),
-				vertical_slice_vertices_count * (i + 1u) + (j + 0u),
-				vertical_slice_vertices_count * (i + 1u) + (j + 1u));
+				vertical_slice_vertices_count * (i + 1u) + (j + 1u),
+				vertical_slice_vertices_count * (i + 1u) + (j + 0u));
 			++index;
 		}
 	}
@@ -132,8 +135,8 @@ parametric_shapes::createQuad(float const width, float const height,
 	                      /* how far away (in bytes) from the start of the buffer is the first vertex? */reinterpret_cast<GLvoid const*>(0x0));
 
 	glBufferSubData(GL_ARRAY_BUFFER, texcoords_offset, texcoords_size, static_cast<GLvoid const*>(texcoords.data()));
-	glEnableVertexAttribArray(static_cast<unsigned int>(bonobo::shader_bindings::texcoords));
-	glVertexAttribPointer(static_cast<unsigned int>(bonobo::shader_bindings::texcoords), 3, GL_FLOAT, GL_FALSE, 0, reinterpret_cast<GLvoid const*>(texcoords_offset));
+	glEnableVertexAttribArray(static_cast<unsigned int>(1U));
+	glVertexAttribPointer(static_cast<unsigned int>(1U), 3, GL_FLOAT, GL_FALSE, 0, reinterpret_cast<GLvoid const*>(texcoords_offset));
 
 
 	data.indices_nb = static_cast<GLsizei>(index_sets.size() * 3u);

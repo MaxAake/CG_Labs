@@ -10,7 +10,10 @@
 // the vertex array, and therefore will be filled with normals taken out of our
 // buffer.
 layout (location = 0) in vec3 vertex;
-layout (location = 1) in vec3 texture;
+layout (location = 1) in vec3 normal;
+layout (location = 2) in vec3 texcoords;
+layout (location = 3) in vec3 tangent;
+layout (location = 4) in vec3 binormal;
 
 #define WAVES 2
 uniform float amps[WAVES];
@@ -42,6 +45,7 @@ out VS_OUT {
 	vec2 normalCoord0;
 	vec2 normalCoord1;
 	vec2 normalCoord2;
+	mat3 TBN;
 } vs_out;
 
 
@@ -58,16 +62,16 @@ void main()
 	vec2 texScale = vec2(8, 4);
 	float normalTime = mod(elapsed_time_s, 100.0);
 	vec2 normalSpeed = vec2(-0.05, 0.0);
-	vs_out.normalCoord0 = texture.xy * texScale + normalTime * normalSpeed;
-	vs_out.normalCoord1 = texture.xy * texScale * 2 + normalTime * normalSpeed * 4;
-	vs_out.normalCoord2 = texture.xy * texScale * 4 + normalTime * normalSpeed * 8;
+	vs_out.normalCoord0 = texcoords.xy * texScale + normalTime * normalSpeed;
+	vs_out.normalCoord1 = texcoords.xy * texScale * 2 + normalTime * normalSpeed * 4;
+	vs_out.normalCoord2 = texcoords.xy * texScale * 4 + normalTime * normalSpeed * 8;
 	//for (int i = 0; i < WAVES; i++) {
 		//float temp_y = 0.0;
 		// waveFunction(amps[i], dirs_x[i], dirs_z[i], freqs[i], phases[i], sharpnesses[i], temp_y);
 		
 		//y = y + temp_y;
 	//}
-
+	vs_out.TBN = mat3(vec3(tangent), vec3(binormal), vec3(normal));
 	vec4 color_deep = vec4(0.0, 0.0, 0.1, 1.0);
 	vec4 color_shallow = vec4(0.0, 0.5, 0.5, 1.0);
 	float y = 0.0;
@@ -82,7 +86,7 @@ void main()
 	vs_out.color = mix(color_deep, color_shallow, facing);
 	vs_out.dx = dx;
 	vs_out.dz = dz;
-	gl_Position = vertex_world_to_clip * vertex_model_to_world * vec4(vertex.x, y, vertex.z, 1.0);
+	gl_Position = vertex_world_to_clip * vertex_model_to_world * vec4((vec3(vertex.x, vertex.y, vertex.z) + y*normalize(normal)), 1.0);
 }
 
 

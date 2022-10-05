@@ -68,6 +68,16 @@ edaf80::Assignment4::run()
 		return;
 	}
 
+	GLuint waveSphere_shader = 0u;
+	program_manager.CreateAndRegisterProgram("waveSphere",
+		{ { ShaderType::vertex, "EDAF80/waveSphere.vert" },
+		  { ShaderType::fragment, "EDAF80/waveSphere.frag" } },
+		waveSphere_shader);
+	if (waveSphere_shader == 0u) {
+		LogError("Failed to load waveSphere shader");
+		return;
+	}
+
 	GLuint wave_shader = 0u;
 	program_manager.CreateAndRegisterProgram("Wave",
 		{ { ShaderType::vertex, "EDAF80/wave.vert" },
@@ -80,9 +90,13 @@ edaf80::Assignment4::run()
 	}
 
 	float amps[] = { 1.0, 0.5 };
+	float waveAmps[] = { 0.1, 0.05 };
 	float dirs_x[] = { -1.0, 0.7 };
 	float dirs_z[] = { 0, 0.7 };
+	float wavedirs_x[] = { -1.0,  0};
+	float wavedirs_z[] = { 0, -1.0 };
 	float freqs[] = { 0.2, 0.4 };
+	float wavefreqs[] = { 200.0, 400.0 };
 	float phases[] = { 0.5, 1.3 };
 	float sharpnesses[] = { 2.0, 2.0 };
 	float elapsed_time_s = 0.0f;
@@ -97,6 +111,17 @@ edaf80::Assignment4::run()
 		glUniform1fv(glGetUniformLocation(program, "dirs_x"), 2, dirs_x);
 		glUniform1fv(glGetUniformLocation(program, "dirs_z"), 2, dirs_z);
 		glUniform1fv(glGetUniformLocation(program, "freqs"), 2, freqs);
+		glUniform1fv(glGetUniformLocation(program, "phases"), 2, phases);
+		glUniform1fv(glGetUniformLocation(program, "sharpness"), 2, sharpnesses);
+		glUniform1f(glGetUniformLocation(program, "elapsed_time_s"), elapsed_time_s);
+		glUniform3fv(glGetUniformLocation(program, "camera_position"), 1, glm::value_ptr(camera_position));
+	};
+
+	auto const waveSphere_set_uniforms = [&waveAmps, &wavedirs_x, &wavedirs_z, &wavefreqs, &phases, &sharpnesses, &elapsed_time_s, &camera_position](GLuint program) {
+		glUniform1fv(glGetUniformLocation(program, "amps"), 2, waveAmps);
+		glUniform1fv(glGetUniformLocation(program, "dirs_x"), 2, wavedirs_x);
+		glUniform1fv(glGetUniformLocation(program, "dirs_z"), 2, wavedirs_z);
+		glUniform1fv(glGetUniformLocation(program, "freqs"), 2, wavefreqs);
 		glUniform1fv(glGetUniformLocation(program, "phases"), 2, phases);
 		glUniform1fv(glGetUniformLocation(program, "sharpness"), 2, sharpnesses);
 		glUniform1f(glGetUniformLocation(program, "elapsed_time_s"), elapsed_time_s);
@@ -122,26 +147,43 @@ edaf80::Assignment4::run()
 	skybox.set_geometry(skybox_shape);
 	skybox.set_program(&skybox_shader, set_uniforms);
 	skybox.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
+	
 
 	
 
+	/*
 	auto water_shape = parametric_shapes::createQuad(100u, 100u, 1000u, 1000u);
 	if (water_shape.vao == 0u) {
 		LogError("Failed to retrieve the mesh for the demo sphere");
 		return;
 	}
-
 	Node water_node;
+	GLuint normalmap = bonobo::loadTexture2D(config::resources_path("textures/waves.png"));
 	water_node.set_geometry(water_shape);
 	water_node.set_program(&wave_shader, wave_set_uniforms);
 	water_node.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
+	water_node.add_texture("normalmap", normalmap, GL_TEXTURE_2D);
+	*/
+	auto sphere_shape = parametric_shapes::createSphere(5.0f, 100u, 100u);
+	if (sphere_shape.vao == 0u) {
+		LogError("Failed to retrieve the mesh for the demo sphere");
+		return;
+	}
+	
+	Node sphere_node;
+	GLuint normalmap = bonobo::loadTexture2D(config::resources_path("textures/waves.png"));
+	sphere_node.set_geometry(sphere_shape);
+	sphere_node.set_program(&waveSphere_shader, waveSphere_set_uniforms);
+	sphere_node.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
+	sphere_node.add_texture("normalmap", normalmap, GL_TEXTURE_2D);
 
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
 
-	water_node.get_transform().SetTranslate(glm::vec3(0.0, 0.0, 0.0));
+	//water_node.get_transform().SetTranslate(glm::vec3(0.0, 0.0, 0.0));
 	skybox.get_transform().SetTranslate(glm::vec3(50.0, 5.0, 50.0));
+	sphere_node.get_transform().SetTranslate(glm::vec3(50.0, 5.0, 50.0));
 
 	auto lastTime = std::chrono::high_resolution_clock::now();
 
@@ -216,8 +258,9 @@ edaf80::Assignment4::run()
 
 
 		if (!shader_reload_failed) {
-			water_node.render(mCamera.GetWorldToClipMatrix());
-			skybox.render(mCamera.GetWorldToClipMatrix());
+			//water_node.render(mCamera.GetWorldToClipMatrix());
+			sphere_node.render(mCamera.GetWorldToClipMatrix());
+			//skybox.render(mCamera.GetWorldToClipMatrix());
 		}
 
 
