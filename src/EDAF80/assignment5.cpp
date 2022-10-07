@@ -1,15 +1,21 @@
 #include "assignment5.hpp"
+#include "interpolation.hpp"
+#include "parametric_shapes.hpp"
 
 #include "config.hpp"
 #include "core/Bonobo.h"
 #include "core/FPSCamera.h"
-#include "core/helpers.hpp"
+#include "core/node.hpp"
 #include "core/ShaderProgramManager.hpp"
 
 #include <imgui.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <tinyfiledialogs.h>
 
 #include <clocale>
+#include <cstdlib>
 #include <stdexcept>
 
 edaf80::Assignment5::Assignment5(WindowManager& windowManager) :
@@ -53,6 +59,29 @@ edaf80::Assignment5::run()
 		return;
 	}
 
+	GLuint flatphong_shader = 0u;
+	program_manager.CreateAndRegisterProgram("FlatPhong",
+		{ { ShaderType::vertex, "EDAF80/flatphong.vert" },
+		  { ShaderType::fragment, "EDAF80/flatphong.frag" } },
+		flatphong_shader);
+	if (flatphong_shader == 0u) {
+		LogError("Failed to load FlatPhong shader");
+		return;
+	}
+
+	auto light_position = glm::vec3(-2.0f, 4.0f, 2.0f);
+	auto const set_uniforms = [&light_position](GLuint program) {
+		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
+	};
+
+	bool use_normal_mapping = false;
+	auto camera_position = mCamera.mWorld.GetTranslation();
+	auto const phong_set_uniforms = [&use_normal_mapping, &light_position, &camera_position](GLuint program) {
+		glUniform1i(glGetUniformLocation(program, "use_normal_mapping"), use_normal_mapping ? 1 : 0);
+		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
+		glUniform3fv(glGetUniformLocation(program, "camera_position"), 1, glm::value_ptr(camera_position));
+	};
+
 	//
 	// Todo: Insert the creation of other shader programs.
 	//       (Check how it was done in assignment 3.)
@@ -62,9 +91,39 @@ edaf80::Assignment5::run()
 	// Todo: Load your geometry
 	//
 
+
+	int const num_asteroids = 100;
+	Node asteroids[num_asteroids];
+	glm::vec3 asteroid_placements[num_asteroids];
+	glm::vec3 asteroid_velocities[num_asteroids];
+	glm::vec3 asteroid_rotations[num_asteroids];
+	glm::vec3 asteroid_rotational_velocities[num_asteroids];
+	auto asteroid_shape = parametric_shapes::createSphere(1.0f, 6u, 6u);
+
+	bonobo::material_data asteroid_material;
+	asteroid_material.ambient = glm::vec3(0.1f, 0.1f, 0.1f);
+	asteroid_material.diffuse = glm::vec3(0.4f, 0.4f, 0.4f);
+	asteroid_material.specular = glm::vec3(1.0f, 1.0f, 1.0f);
+	asteroid_material.shininess = 2.0f;
+	float const maximum_speed = 2.0f;
+	float const bounding_radius = 10.0f;
+
+	for (int i = 0; i < num_asteroids; i++) {
+		asteroids[i].set_geometry(asteroid_shape);
+		asteroids[i].set_program(&flatphong_shader, phong_set_uniforms);
+		asteroids[i].set_material_constants(asteroid_material);
+		asteroid_placements[i] = glm::vec3(rand() / (RAND_MAX + 1.0f) - 0.5f, rand() / (RAND_MAX + 1.0f) - 0.5f, rand() / (RAND_MAX + 1.0f) - 0.5f) * bounding_radius * sqrt(2.42f) * 2.0f;
+		asteroid_velocities[i] = glm::vec3(rand() / (RAND_MAX + 1.0f) - 0.5f, rand() / (RAND_MAX + 1.0f) - 0.5f, rand() / (RAND_MAX + 1.0f) - 0.5f) * maximum_speed;
+		asteroid_rotations[i] = glm::vec3(rand() / (RAND_MAX + 1.0f) - 0.5f, rand() / (RAND_MAX + 1.0f) - 0.5f, rand() / (RAND_MAX + 1.0f) - 0.5f) * glm::two_pi<float>();
+		asteroid_rotational_velocities[i] = glm::vec3(rand() / (RAND_MAX + 1.0f) - 0.5f, rand() / (RAND_MAX + 1.0f) - 0.5f, rand() / (RAND_MAX + 1.0f) - 0.5f) * glm::two_pi<float>() * 2.0f;
+	}
+
+
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
 
 
 	auto lastTime = std::chrono::high_resolution_clock::now();
@@ -87,6 +146,7 @@ edaf80::Assignment5::run()
 		glfwPollEvents();
 		inputHandler.Advance();
 		mCamera.Update(deltaTimeUs, inputHandler);
+		camera_position = mCamera.mWorld.GetTranslation();
 
 		if (inputHandler.GetKeycodeState(GLFW_KEY_R) & JUST_PRESSED) {
 			shader_reload_failed = !program_manager.ReloadAllPrograms();
@@ -127,9 +187,13 @@ edaf80::Assignment5::run()
 
 
 		if (!shader_reload_failed) {
-			//
-			// Todo: Render all your geometry here.
-			//
+			for (int i = 0; i < num_asteroids; i++) {
+				asteroid_placements[i] += asteroid_velocities[i] / 1000000.0f * static_cast<float>(deltaTimeUs.count());
+				asteroid_rotations[i] += asteroid_rotational_velocities[i] / 1000000.0f * static_cast<float>(deltaTimeUs.count());
+				asteroids[i].get_transform().SetTranslate(asteroid_placements[i]);
+				asteroids[i].get_transform().SetRotate(0.0f, asteroid_rotations[i]); // this do not work rn
+				asteroids[i].render(mCamera.GetWorldToClipMatrix());
+			}
 		}
 
 
@@ -139,13 +203,13 @@ edaf80::Assignment5::run()
 		// Todo: If you want a custom ImGUI window, you can set it up
 		//       here
 		//
-		bool const opened = ImGui::Begin("Scene Controls", nullptr, ImGuiWindowFlags_None);
-		if (opened) {
-			ImGui::Checkbox("Show basis", &show_basis);
-			ImGui::SliderFloat("Basis thickness scale", &basis_thickness_scale, 0.0f, 100.0f);
-			ImGui::SliderFloat("Basis length scale", &basis_length_scale, 0.0f, 100.0f);
-		}
-		ImGui::End();
+		/*bool const opened = ImGui::Begin("Scene Controls", nullptr, ImGuiWindowFlags_None);*/
+		// if (opened) {
+			// ImGui::Checkbox("Show basis", &show_basis);
+			// ImGui::SliderFloat("Basis thickness scale", &basis_thickness_scale, 0.0f, 100.0f);
+			//ImGui::SliderFloat("Basis length scale", &basis_length_scale, 0.0f, 100.0f);
+		/*}
+		ImGui::End();*/
 
 		if (show_basis)
 			bonobo::renderBasis(basis_thickness_scale, basis_length_scale, mCamera.GetWorldToClipMatrix());

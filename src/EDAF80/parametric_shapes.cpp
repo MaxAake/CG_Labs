@@ -8,6 +8,7 @@
 #include <cmath>
 #include <iostream>
 #include <vector>
+#include <stdlib.h>
 
 bonobo::mesh_data
 parametric_shapes::createQuad(float const width, float const height,
@@ -195,10 +196,18 @@ parametric_shapes::createSphere(float const radius,
 		for (unsigned int j = 0u; j < lon_slice_vertices_count; ++j) {
 			float const cos_phi = std::cos(phi);
 			float const sin_phi = std::sin(phi);
+			float deviatedRadius;
+			if (j == lon_slice_vertices_count - 1 || j == 0 || i == lat_slice_vertices_count - 1 || i == 0) {
+				deviatedRadius = radius;
+			}
+			else {
+				float deviation = rand() / (RAND_MAX + 1.0f);
+				deviatedRadius = radius + radius * deviation * 0.4;
+			}
 			// vertex
-			vertices[index] = glm::vec3(radius * sin_theta * sin_phi,
-				-radius * cos_phi,
-				radius * cos_theta * sin_phi);
+			vertices[index] = glm::vec3(deviatedRadius * sin_theta * sin_phi,
+				-deviatedRadius * cos_phi,
+				deviatedRadius * cos_theta * sin_phi);
 
 			// texture coordinates
 			texcoords[index] = glm::vec3(static_cast<float>(j) / (static_cast<float>(lon_slice_vertices_count)),
