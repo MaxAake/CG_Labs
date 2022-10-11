@@ -1,10 +1,12 @@
 #include "assignment5.hpp"
 #include "interpolation.hpp"
 #include "parametric_shapes.hpp"
+#include "Asteroid.hpp"
 
 #include "config.hpp"
 #include "core/Bonobo.h"
 #include "core/FPSCamera.h"
+#include "core/helpers.hpp"
 #include "core/node.hpp"
 #include "core/ShaderProgramManager.hpp"
 
@@ -17,6 +19,7 @@
 #include <clocale>
 #include <cstdlib>
 #include <stdexcept>
+#include <algorithm>
 
 edaf80::Assignment5::Assignment5(WindowManager& windowManager) :
 	mCamera(0.5f * glm::half_pi<float>(),
@@ -91,33 +94,43 @@ edaf80::Assignment5::run()
 	// Todo: Load your geometry
 	//
 
+	auto ship_shape = parametric_shapes::createSphere(0.2f, 10u, 10u);
+	bonobo::material_data ship_material;
+	ship_material.ambient = glm::vec3(0.1f, 0.1f, 0.1f);
+	ship_material.diffuse = glm::vec3(0.8f, 0.0f, 0.0f);
+	ship_material.specular = glm::vec3(1.0f, 1.0f, 1.0f);
+	ship_material.shininess = 2.0f;
+
+	Node ship_node;
+	ship_node.set_geometry(ship_shape);
+	ship_node.set_material_constants(ship_material);
+	ship_node.set_program(&flatphong_shader, phong_set_uniforms);
+
 
 	int const num_asteroids = 100;
-	Node asteroids[num_asteroids];
+	Asteroid asteroids[num_asteroids];
 	glm::vec3 asteroid_placements[num_asteroids];
 	glm::vec3 asteroid_velocities[num_asteroids];
 	glm::vec3 asteroid_rotations[num_asteroids];
 	glm::vec3 asteroid_rotational_velocities[num_asteroids];
-	auto asteroid_shape = parametric_shapes::createSphere(1.0f, 6u, 6u);
+	glm::vec3 asteroid_angles[num_asteroids];
+	auto asteroid_shape = parametric_shapes::createSphere(1.0f, 6u, 6u, true);
+	
 
 	bonobo::material_data asteroid_material;
 	asteroid_material.ambient = glm::vec3(0.1f, 0.1f, 0.1f);
-	asteroid_material.diffuse = glm::vec3(0.4f, 0.4f, 0.4f);
-	asteroid_material.specular = glm::vec3(1.0f, 1.0f, 1.0f);
+	asteroid_material.diffuse = glm::vec3(0.5f, 0.5f, 0.5f);
+	asteroid_material.specular = glm::vec3(0.5f, 0.5f, 0.5f);
 	asteroid_material.shininess = 2.0f;
 	float const maximum_speed = 2.0f;
 	float const bounding_radius = 10.0f;
 
 	for (int i = 0; i < num_asteroids; i++) {
-		asteroids[i].set_geometry(asteroid_shape);
-		asteroids[i].set_program(&flatphong_shader, phong_set_uniforms);
-		asteroids[i].set_material_constants(asteroid_material);
-		asteroid_placements[i] = glm::vec3(rand() / (RAND_MAX + 1.0f) - 0.5f, rand() / (RAND_MAX + 1.0f) - 0.5f, rand() / (RAND_MAX + 1.0f) - 0.5f) * bounding_radius * sqrt(2.42f) * 2.0f;
-		asteroid_velocities[i] = glm::vec3(rand() / (RAND_MAX + 1.0f) - 0.5f, rand() / (RAND_MAX + 1.0f) - 0.5f, rand() / (RAND_MAX + 1.0f) - 0.5f) * maximum_speed;
-		asteroid_rotations[i] = glm::vec3(rand() / (RAND_MAX + 1.0f) - 0.5f, rand() / (RAND_MAX + 1.0f) - 0.5f, rand() / (RAND_MAX + 1.0f) - 0.5f) * glm::two_pi<float>();
-		asteroid_rotational_velocities[i] = glm::vec3(rand() / (RAND_MAX + 1.0f) - 0.5f, rand() / (RAND_MAX + 1.0f) - 0.5f, rand() / (RAND_MAX + 1.0f) - 0.5f) * glm::two_pi<float>() * 2.0f;
+		asteroids[i]._body.node.set_geometry(asteroid_shape);
+		asteroids[i]._body.node.set_program(&flatphong_shader, phong_set_uniforms);
+		asteroids[i]._body.node.set_material_constants(asteroid_material);
+		
 	}
-
 
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -147,6 +160,21 @@ edaf80::Assignment5::run()
 		inputHandler.Advance();
 		mCamera.Update(deltaTimeUs, inputHandler);
 		camera_position = mCamera.mWorld.GetTranslation();
+		glm::mat4 camera_rotation = mCamera.mWorld.GetRotationMatrix();
+
+		glm::vec2 mousePos = inputHandler.GetMousePosition();
+		int width = 0;
+		int height = 0;
+		glfwGetWindowSize(window, &width, &height);
+		
+		glm::vec2 mouseDir = glm::normalize(glm::vec2(mousePos.x - width / 2, mousePos.y - height / 2));
+		float mouseAmp = sqrt(pow(mousePos.x - width / 2, 2) + pow(mousePos.y - height / 2, 2));
+		mouseAmp = std::max(0.05f*height, std::min(mouseAmp, 0.45f * height));
+		mouseAmp = (mouseAmp - 0.05f * height) * 9/8 / 0.45 / height;
+		std::cout << mouseAmp;
+		std::cout << '\n';
+
+		glm::mat4 ship_tranform = glm::translate(glm::mat4(1.0f), camera_position) * camera_rotation * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.3f, -2.0f));
 
 		if (inputHandler.GetKeycodeState(GLFW_KEY_R) & JUST_PRESSED) {
 			shader_reload_failed = !program_manager.ReloadAllPrograms();
@@ -188,12 +216,9 @@ edaf80::Assignment5::run()
 
 		if (!shader_reload_failed) {
 			for (int i = 0; i < num_asteroids; i++) {
-				asteroid_placements[i] += asteroid_velocities[i] / 1000000.0f * static_cast<float>(deltaTimeUs.count());
-				asteroid_rotations[i] += asteroid_rotational_velocities[i] / 1000000.0f * static_cast<float>(deltaTimeUs.count());
-				asteroids[i].get_transform().SetTranslate(asteroid_placements[i]);
-				asteroids[i].get_transform().SetRotate(0.0f, asteroid_rotations[i]); // this do not work rn
-				asteroids[i].render(mCamera.GetWorldToClipMatrix());
+				asteroids[i].render(deltaTimeUs, mCamera.GetWorldToClipMatrix());
 			}
+			ship_node.render(mCamera.GetWorldToClipMatrix(), ship_tranform);
 		}
 
 

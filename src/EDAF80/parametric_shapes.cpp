@@ -161,7 +161,7 @@ parametric_shapes::createQuad(float const width, float const height,
 bonobo::mesh_data
 parametric_shapes::createSphere(float const radius,
                                 unsigned int const longitude_split_count,
-                                unsigned int const latitude_split_count)
+                                unsigned int const latitude_split_count, bool bump)
 {
 	auto const lat_slice_edges_count = latitude_split_count + 1u;
 	auto const lon_slice_edges_count = longitude_split_count + 1u;
@@ -197,7 +197,7 @@ parametric_shapes::createSphere(float const radius,
 			float const cos_phi = std::cos(phi);
 			float const sin_phi = std::sin(phi);
 			float deviatedRadius;
-			if (j == lon_slice_vertices_count - 1 || j == 0 || i == lat_slice_vertices_count - 1 || i == 0) {
+			if (j == lon_slice_vertices_count - 1 || j == 0 || i == lat_slice_vertices_count - 1 || i == 0 || !bump) {
 				deviatedRadius = radius;
 			}
 			else {
