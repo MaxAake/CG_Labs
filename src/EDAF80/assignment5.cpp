@@ -199,7 +199,6 @@ edaf80::Assignment5::run()
 		mCamera.mWorld.SetRotate(glm::mat3(camera_rotate));
 		mCamera.mWorld.SetTranslate(glm::vec3(ship_translate[3][0], ship_translate[3][1], ship_translate[3][2]) - 5.0f * ship_direction + 1.0f * ship_up);
 
-
 		if (inputHandler.GetKeycodeState(GLFW_KEY_R) & JUST_PRESSED) {
 			shader_reload_failed = !program_manager.ReloadAllPrograms();
 			if (shader_reload_failed)
