@@ -154,6 +154,7 @@ void TRSTransform<T, P>::SetTranslate(glm::tvec3<T, P> v)
 	mT = v;
 }
 
+
 /*----------------------------------------------------------------------------*/
 
 template<typename T, glm::precision P>
@@ -176,6 +177,14 @@ template<typename T, glm::precision P>
 void TRSTransform<T, P>::SetRotate(T angle, glm::tvec3<T, P> v)
 {
 	mR = glm::tmat3x3<T, P>(glm::rotate(glm::tmat4x4<T, P>(T(1)), angle, v));
+}
+
+/*----------------------------------------------------------------------------*/
+
+template<typename T, glm::precision P>
+void TRSTransform<T, P>::SetRotate(glm::tmat3x3<T, P > m)
+{
+	mR = m;
 }
 
 /*----------------------------------------------------------------------------*/

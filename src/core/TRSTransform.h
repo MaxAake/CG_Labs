@@ -71,6 +71,7 @@ public:
 	void SetScale(T uniform);
 
 	// Rotate around vector (x, y, z)
+	void SetRotate(glm::tmat3x3<T, P> m);
 	void SetRotate(T angle, glm::tvec3<T, P> v);
 	void SetRotateX(T angle);
 	void SetRotateY(T angle);

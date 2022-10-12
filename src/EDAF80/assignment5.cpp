@@ -94,7 +94,7 @@ edaf80::Assignment5::run()
 	// Todo: Load your geometry
 	//
 
-	auto ship_shape = bonobo::loadObjects(config::resources_path("scenes/Test2.obj"));
+	auto ship_shape = bonobo::loadObjects(config::resources_path("scenes/Starfox.obj"));
 	bonobo::material_data ship_material;
 	ship_material.ambient = glm::vec3(0.1f, 0.1f, 0.1f);
 	ship_material.diffuse = glm::vec3(0.8f, 0.0f, 0.0f);
@@ -117,13 +117,12 @@ edaf80::Assignment5::run()
 	glm::vec3 asteroid_angles[num_asteroids];
 	auto asteroid_shape = parametric_shapes::createSphere(1.0f, 6u, 6u, true);
 
-	struct {
-		glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
-		glm::vec3 scale = glm::vec3(1.0f) * 0.003f;
-		glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::pi<float>(), glm::vec3(0.0f, 1.0f, 0.0f));
-	} ship;
+	glm::mat4 ship_translate = glm::translate(mCamera.mWorld.GetTranslationMatrix(), glm::vec3(0.0f, -0.5f, -5.0f));
+	glm::mat4 ship_rotate = glm::rotate(glm::mat4(1.0f), glm::pi<float>(), glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 ship_scale = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f) * 0.003f);
+	glm::vec3 ship_direction = glm::vec3(0.0f, 0.0f, 1.0f);
 
-	glm::mat4 ship_transform = ship.rotationMatrix * glm::scale(glm::mat4(1.0f), ship.scale);
+	glm::mat4 ship_transform = ship_translate * ship_rotate * ship_scale;
 
 	bonobo::material_data asteroid_material;
 	asteroid_material.ambient = glm::vec3(0.1f, 0.1f, 0.1f);
@@ -180,24 +179,25 @@ edaf80::Assignment5::run()
 		float mouseAmp = sqrt(pow(mousePos.x - width / 2, 2) + pow(mousePos.y - height / 2, 2));
 		mouseAmp = std::max(0.05f*height, std::min(mouseAmp, 0.45f * height));
 		mouseAmp = (mouseAmp - 0.05f * height) * 9/8 / 0.45 / height;
+
+		glm::mat4 rot_x = glm::rotate(glm::mat4(1.0f), mouseDir[1] * 0.01f * mouseAmp, glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::mat4 rot_y = glm::rotate(glm::mat4(1.0f), mouseDir[0] * 0.01f * mouseAmp, glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 delta_rotate = rot_x * rot_y;
 		
+		ship_rotate *= delta_rotate;
+		ship_direction = ship_rotate * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+		glm::vec3 ship_up = ship_rotate * glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+		glm::vec3 ship_side = ship_rotate * glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 
+		glm::mat4 delta_translate = glm::translate(glm::mat4(1.0f), ship_direction * elapsed_time_s * 5.0f);
 
-		glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), mouseDir[1] * 0.01f * mouseAmp, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), -mouseDir[0] * 0.01f * mouseAmp, glm::vec3(0.0f, 1.0f, 0.0f));
-		ship.rotationMatrix *= rotation;
-		//glm::vec3 rotationAxis = glm::vec3(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f) * ship.rotationMatrix);
-		//rotationAxis[1] = -rotationAxis[1];
-		//ship.position = ship.position + rotationAxis * elapsed_time_s * 1.0f;
-		//ship.position.x += mouseDir.x * elapsed_time_s * 10.0f
-		//std::cout << rotationAxis[1];
-		//std::cout << '\n';
+		ship_translate *= delta_translate;
+		ship_transform = ship_translate * ship_rotate * ship_scale;
 
-		glm::mat4 newMovement = rotation * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 1.0f) * elapsed_time_s * 1000.0f) ;
-		ship_transform = ship_transform * newMovement;
-		mCamera.mWorld.SetTranslate(glm::vec3(ship_transform[3][0], ship_transform[3][1], ship_transform[3][2]) + normalize(glm::vec3(newMovement[3][0], newMovement[3][1], newMovement[3][2])) * 5.0f);
-		//mCamera.mWorld.PreRotateX(-mouseDir[1] * 0.01f * mouseAmp);
-		//mCamera.mWorld.RotateY(-mouseDir[0] * 0.01f * mouseAmp);
-		
+		glm::mat4 camera_rotate = glm::rotate(glm::mat4(1.0f), glm::pi<float>()/32.0f, ship_side) * glm::rotate(glm::mat4(1.0f), glm::pi<float>(), ship_direction) * (-ship_rotate);
+
+		mCamera.mWorld.SetRotate(glm::mat3(camera_rotate));
+		mCamera.mWorld.SetTranslate(glm::vec3(ship_translate[3][0], ship_translate[3][1], ship_translate[3][2]) - 5.0f * ship_direction + 1.0f * ship_up);
 
 
 		if (inputHandler.GetKeycodeState(GLFW_KEY_R) & JUST_PRESSED) {
