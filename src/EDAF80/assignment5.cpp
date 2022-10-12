@@ -193,8 +193,11 @@ edaf80::Assignment5::run()
 		//std::cout << '\n';
 
 		glm::mat4 newMovement = rotation * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 1.0f) * elapsed_time_s * 1000.0f) ;
+		glm::mat4 absoluteMovement = ship.rotationMatrix * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 1.0f) * elapsed_time_s * 1000.0f);
 		ship_transform = ship_transform * newMovement;
-		mCamera.mWorld.SetTranslate(glm::vec3(ship_transform[3][0], ship_transform[3][1], ship_transform[3][2]) + normalize(glm::vec3(newMovement[3][0], newMovement[3][1], newMovement[3][2])) * 5.0f);
+		mCamera.mWorld.SetTranslate(glm::vec3(ship_transform[3][0], ship_transform[3][1], ship_transform[3][2]) - normalize(glm::vec3(absoluteMovement[3][0], absoluteMovement[3][1], absoluteMovement[3][2])) * 5.0f);
+		mCamera.mWorld.LookAt(glm::vec3(ship_transform[3][0], ship_transform[3][1], ship_transform[3][2]));
+
 		//mCamera.mWorld.PreRotateX(-mouseDir[1] * 0.01f * mouseAmp);
 		//mCamera.mWorld.RotateY(-mouseDir[0] * 0.01f * mouseAmp);
 		
