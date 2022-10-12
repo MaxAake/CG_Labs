@@ -94,7 +94,7 @@ edaf80::Assignment5::run()
 	// Todo: Load your geometry
 	//
 
-	auto ship_shape = parametric_shapes::createSphere(0.2f, 10u, 10u);
+	auto ship_shape = bonobo::loadObjects(config::resources_path("scenes/Test2.obj"));
 	bonobo::material_data ship_material;
 	ship_material.ambient = glm::vec3(0.1f, 0.1f, 0.1f);
 	ship_material.diffuse = glm::vec3(0.8f, 0.0f, 0.0f);
@@ -102,9 +102,10 @@ edaf80::Assignment5::run()
 	ship_material.shininess = 2.0f;
 
 	Node ship_node;
-	ship_node.set_geometry(ship_shape);
+	ship_node.set_geometry(ship_shape[0]);
 	ship_node.set_material_constants(ship_material);
 	ship_node.set_program(&flatphong_shader, phong_set_uniforms);
+	
 
 
 	int const num_asteroids = 100;
@@ -115,7 +116,14 @@ edaf80::Assignment5::run()
 	glm::vec3 asteroid_rotational_velocities[num_asteroids];
 	glm::vec3 asteroid_angles[num_asteroids];
 	auto asteroid_shape = parametric_shapes::createSphere(1.0f, 6u, 6u, true);
-	
+
+	struct {
+		glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
+		glm::vec3 scale = glm::vec3(1.0f) * 0.003f;
+		glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::pi<float>(), glm::vec3(0.0f, 1.0f, 0.0f));
+	} ship;
+
+	glm::mat4 ship_transform = ship.rotationMatrix * glm::scale(glm::mat4(1.0f), ship.scale);
 
 	bonobo::material_data asteroid_material;
 	asteroid_material.ambient = glm::vec3(0.1f, 0.1f, 0.1f);
@@ -152,6 +160,7 @@ edaf80::Assignment5::run()
 		auto const nowTime = std::chrono::high_resolution_clock::now();
 		auto const deltaTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(nowTime - lastTime);
 		lastTime = nowTime;
+		auto const elapsed_time_s = std::chrono::duration<float>(deltaTimeUs).count();
 
 		auto& io = ImGui::GetIO();
 		inputHandler.SetUICapture(io.WantCaptureMouse, io.WantCaptureKeyboard);
@@ -165,16 +174,31 @@ edaf80::Assignment5::run()
 		glm::vec2 mousePos = inputHandler.GetMousePosition();
 		int width = 0;
 		int height = 0;
-		glfwGetWindowSize(window, &width, &height);
+		glfwGetWindowSize(window, &width, &height); 
 		
 		glm::vec2 mouseDir = glm::normalize(glm::vec2(mousePos.x - width / 2, mousePos.y - height / 2));
 		float mouseAmp = sqrt(pow(mousePos.x - width / 2, 2) + pow(mousePos.y - height / 2, 2));
 		mouseAmp = std::max(0.05f*height, std::min(mouseAmp, 0.45f * height));
 		mouseAmp = (mouseAmp - 0.05f * height) * 9/8 / 0.45 / height;
-		std::cout << mouseAmp;
-		std::cout << '\n';
+		
 
-		glm::mat4 ship_tranform = glm::translate(glm::mat4(1.0f), camera_position) * camera_rotation * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.3f, -2.0f));
+
+		glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), mouseDir[1] * 0.01f * mouseAmp, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), -mouseDir[0] * 0.01f * mouseAmp, glm::vec3(0.0f, 1.0f, 0.0f));
+		ship.rotationMatrix *= rotation;
+		//glm::vec3 rotationAxis = glm::vec3(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f) * ship.rotationMatrix);
+		//rotationAxis[1] = -rotationAxis[1];
+		//ship.position = ship.position + rotationAxis * elapsed_time_s * 1.0f;
+		//ship.position.x += mouseDir.x * elapsed_time_s * 10.0f
+		//std::cout << rotationAxis[1];
+		//std::cout << '\n';
+
+		glm::mat4 newMovement = rotation * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 1.0f) * elapsed_time_s * 1000.0f) ;
+		ship_transform = ship_transform * newMovement;
+		mCamera.mWorld.SetTranslate(glm::vec3(ship_transform[3][0], ship_transform[3][1], ship_transform[3][2]) + normalize(glm::vec3(newMovement[3][0], newMovement[3][1], newMovement[3][2])) * 5.0f);
+		//mCamera.mWorld.PreRotateX(-mouseDir[1] * 0.01f * mouseAmp);
+		//mCamera.mWorld.RotateY(-mouseDir[0] * 0.01f * mouseAmp);
+		
+
 
 		if (inputHandler.GetKeycodeState(GLFW_KEY_R) & JUST_PRESSED) {
 			shader_reload_failed = !program_manager.ReloadAllPrograms();
@@ -218,7 +242,7 @@ edaf80::Assignment5::run()
 			for (int i = 0; i < num_asteroids; i++) {
 				asteroids[i].render(deltaTimeUs, mCamera.GetWorldToClipMatrix());
 			}
-			ship_node.render(mCamera.GetWorldToClipMatrix(), ship_tranform);
+			ship_node.render(mCamera.GetWorldToClipMatrix(), ship_transform);
 		}
 
 
