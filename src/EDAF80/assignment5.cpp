@@ -94,7 +94,7 @@ edaf80::Assignment5::run()
 	// Todo: Load your geometry
 	//
 
-	auto ship_shape = bonobo::loadObjects(config::resources_path("scenes/Starfox.obj"));
+	auto ship_shape = bonobo::loadObjects(config::resources_path("scenes/TEST2.obj"));
 	bonobo::material_data ship_material;
 	ship_material.ambient = glm::vec3(0.1f, 0.1f, 0.1f);
 	ship_material.diffuse = glm::vec3(0.8f, 0.0f, 0.0f);
@@ -262,8 +262,6 @@ edaf80::Assignment5::run()
 							collision = true;
 							if (!asteroids[i]._body.i_frame && !asteroids[j]._body.i_frame) {
 								glm::vec3 normal = glm::normalize(position - comparePosition);
-								std::cout << glm::length(position - comparePosition);
-								std::cout << '\n';
 								asteroids[i]._body.velocity = glm::reflect(direction, normal);
 								asteroids[j]._body.velocity = glm::reflect(compareDirection, -normal);
 							}
