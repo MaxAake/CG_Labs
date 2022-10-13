@@ -17,7 +17,7 @@ Asteroid::Asteroid()
 	_body.axis = glm::normalize(glm::vec3(rand() / (RAND_MAX + 1.0f), rand() / (RAND_MAX + 1.0f), rand() / (RAND_MAX + 1.0f)) * glm::two_pi<float>());
 	_body.angle = 0.0f;
 	_body.spin_speed = rand() / (RAND_MAX + 1.0f);
-
+	_body.i_frame = false;
 	
 }
 

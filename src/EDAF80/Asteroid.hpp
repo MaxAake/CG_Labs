@@ -46,6 +46,7 @@ public:
 		glm::vec3 axis;
 		float angle;
 		float spin_speed;
+		bool i_frame;
 	} _body;
 
 };

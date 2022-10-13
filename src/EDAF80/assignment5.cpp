@@ -130,7 +130,7 @@ edaf80::Assignment5::run()
 	asteroid_material.specular = glm::vec3(0.5f, 0.5f, 0.5f);
 	asteroid_material.shininess = 2.0f;
 	float const maximum_speed = 2.0f;
-	float const bounding_radius = 10.0f;
+	float const bounding_radius = 40.0f;
 
 	for (int i = 0; i < num_asteroids; i++) {
 		asteroids[i]._body.node.set_geometry(asteroid_shape);
@@ -147,7 +147,7 @@ edaf80::Assignment5::run()
 
 
 	auto lastTime = std::chrono::high_resolution_clock::now();
-
+	bool ship_alive = false;
 	bool show_logs = true;
 	bool show_gui = true;
 	bool shader_reload_failed = false;
@@ -167,6 +167,17 @@ edaf80::Assignment5::run()
 		glfwPollEvents();
 		inputHandler.Advance();
 		mCamera.Update(deltaTimeUs, inputHandler);
+
+		if (!ship_alive && inputHandler.GetKeycodeState(GLFW_KEY_SPACE) & JUST_PRESSED) {
+			ship_alive = true;
+			ship_translate = glm::translate(mCamera.mWorld.GetTranslationMatrix(), glm::vec3(0.0f, -0.5f, -5.0f));
+			ship_rotate = glm::rotate(glm::mat4(1.0f), glm::pi<float>(), glm::vec3(0.0f, 1.0f, 0.0f));
+			ship_scale = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f) * 0.003f);
+			ship_direction = glm::vec3(0.0f, 0.0f, 1.0f);
+			ship_transform = ship_translate * ship_rotate * ship_scale;
+		}
+
+		if (ship_alive) {
 		camera_position = mCamera.mWorld.GetTranslation();
 		glm::mat4 camera_rotation = mCamera.mWorld.GetRotationMatrix();
 
@@ -198,6 +209,7 @@ edaf80::Assignment5::run()
 
 		mCamera.mWorld.SetRotate(glm::mat3(camera_rotate));
 		mCamera.mWorld.SetTranslate(glm::vec3(ship_translate[3][0], ship_translate[3][1], ship_translate[3][2]) - 5.0f * ship_direction + 1.0f * ship_up);
+		}
 
 		if (inputHandler.GetKeycodeState(GLFW_KEY_R) & JUST_PRESSED) {
 			shader_reload_failed = !program_manager.ReloadAllPrograms();
@@ -236,12 +248,40 @@ edaf80::Assignment5::run()
 
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-
+		glm::vec3 ship_position = glm::vec3(ship_translate[3][0], ship_translate[3][1], ship_translate[3][2]);
 		if (!shader_reload_failed) {
 			for (int i = 0; i < num_asteroids; i++) {
+				glm::vec3 position = asteroids[i]._body.position;
+				glm::vec3 direction = asteroids[i]._body.velocity;
+				bool collision = false;
+				for (int j = 0; j < num_asteroids; j++) {
+					if (j != i) {
+						glm::vec3 comparePosition = asteroids[j]._body.position;
+						glm::vec3 compareDirection = asteroids[j]._body.velocity;
+						if (glm::length(position - comparePosition) < 2.0f) {
+							collision = true;
+							if (!asteroids[i]._body.i_frame && !asteroids[j]._body.i_frame) {
+								glm::vec3 normal = glm::normalize(position - comparePosition);
+								std::cout << glm::length(position - comparePosition);
+								std::cout << '\n';
+								asteroids[i]._body.velocity = glm::reflect(direction, normal);
+								asteroids[j]._body.velocity = glm::reflect(compareDirection, -normal);
+							}
+						}
+					}
+				}
+				if (glm::length(position - ship_position) > bounding_radius) {
+					asteroids[i]._body.position = ship_position - (asteroids[i]._body.position - ship_position);
+				}
+				else if (glm::length(position - ship_position) < 1) {
+					ship_alive = false;
+				}
+				asteroids[i]._body.i_frame = collision;
 				asteroids[i].render(deltaTimeUs, mCamera.GetWorldToClipMatrix());
 			}
-			ship_node.render(mCamera.GetWorldToClipMatrix(), ship_transform);
+			if (ship_alive) {
+				ship_node.render(mCamera.GetWorldToClipMatrix(), ship_transform);
+			}
 		}
 
 
